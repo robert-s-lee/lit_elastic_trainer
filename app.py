@@ -28,13 +28,13 @@ class ElasticFlow(L.LightningFlow):
 		self.last_worker_id = 0
 		# vm config
 		self.target_instance_type = "default"
-		self.target_preemptible = False
-		self.target_wait_timeout = None 	# feature not avail
+		self.target_preemptible = False		# feature not avail yet
+		self.target_wait_timeout = None 	# feature not avail yet
 		self.target_idle_timeout = None
 
 		# state
-		self.n_trials = 200
-		self.current_trial = 1
+		self.n_trials = 50
+		self.current_trial = 0
 		# set by UI
 		self.submit_processing = True
 		self.target_simultaneous_trials = 2
@@ -93,7 +93,7 @@ class ElasticFlow(L.LightningFlow):
 
 		if not(self.submit_processing):
 			for i,w in self.workers.items():
-				if self.worker_active[i] and work_is_free(w):
+				if self.worker_active[i] and work_is_free(w) and self.current_trial  < self.n_trials:
 					w.run(self.current_trial)
 					self.worker_call_count[i] += 1
 					self.current_trial += 1
