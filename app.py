@@ -142,23 +142,31 @@ class Work(L.LightningWork):
 			cmd = f"ttyd -p {self.port} bash"
 			print(f"{self.id}: {cmd}")
 			self._procs["ttyd"] = subprocess.Popen(cmd, shell=True, executable='/bin/bash',close_fds=True)
-		print(f"{self.id}: start seq {seq}")
-		time.sleep(random.randint(1,10))
+		sleep_sec = random.randint(1,10)
+		print(f"{self.id}: start seq {seq} sleeping {sleep_sec}")
+		# using subprocess to show in terminal
+		subprocess.run(f"sleep {sleep_sec}", shell=True)
 
 class Flow(L.LightningFlow):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
+		self.elastic_flow0 = ElasticFlow()
 		self.elastic_flow1 = ElasticFlow()
+		self.elastic_flow2 = ElasticFlow()
 
 	def run(self):
+		self.elastic_flow0.run()
 		self.elastic_flow1.run()
+		if self.elastic_flow0.current_trial > 5 and self.elastic_flow1.current_trial > 10:
+			self.elastic_flow2.run()
 
 	def configure_layout(self):
 		ui = []
-		ui.append({"name":"Config", "content":self.elastic_flow1})
-		for i,active in self.elastic_flow1.worker_active.items():
-			if active:
-				ui.append({"name":f"Terminal {str(i)}","content":self.elastic_flow1.workers[str(i)]})
+		for flow_num,flow in enumerate([self.elastic_flow0, self.elastic_flow1, self.elastic_flow2]):
+			ui.append({"name":f"Config {flow_num}", "content":flow})
+			for i,active in flow.worker_active.items():
+				if active:
+					ui.append({"name":f"Flow {flow_num} Term {str(i)}","content":flow.workers[str(i)]})
 		return(ui)
 if __name__ == "__main__":
 	app = L.LightningApp(Flow())

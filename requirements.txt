@@ -2,4 +2,5 @@ https://github.com/robert-s-lee/lit_bashwork/archive/refs/tags/0.0.2.tar.gz
 streamlit
 streamlit_autorefresh
 lightning
+fsspec[s3]
 
