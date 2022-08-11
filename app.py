@@ -7,6 +7,22 @@ import time
 import random
 import pprint
 from lightning_app.utilities.enum import WorkStageStatus #     NOT_STARTED PENDING RUNNING SUCCEEDED FAILED STOPPED
+from dataclasses import dataclass
+import subprocess
+import shlex
+
+@dataclass
+class TtydBuildConfig(L.BuildConfig):
+    def build_commands(self):
+        return ["""sudo apt-get update
+sudo apt-get install htop net-tools lsof
+sudo apt-get install build-essential cmake git libjson-c-dev libwebsockets-dev
+git clone https://github.com/tsl0922/ttyd.git
+cd ttyd && mkdir build && cd build
+cmake ..
+make && sudo make install
+"""]
+
 
 def work_is_free(work):
 	"""this is not 100% if the work executes very fast"""
@@ -110,13 +126,22 @@ class ElasticFlow(L.LightningFlow):
 					self.num_of_workers -= 1
 
 	def configure_layout(self):
-		return(StreamlitFrontend(render_fn=ui_main.run))  
+		return(StreamlitFrontend(render_fn=ui_main.run))
 
 class Work(L.LightningWork):
-	def __init__(self, *args, id, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, *args, id, cloud_build_config = None, **kwargs):
+		if cloud_build_config is None:
+			cloud_build_config = TtydBuildConfig()
+		super().__init__(*args, 
+			cloud_build_config=cloud_build_config,
+			**kwargs)
 		self.id = id
+		self._procs = {}
 	def run(self,seq, *args, **kwargs):
+		if "ttyd" not in self._procs:
+			cmd = f"ttyd -p {self.port} bash"
+			print(f"{self.id}: {cmd}")
+			self._procs["ttyd"] = subprocess.Popen(cmd, shell=True, executable='/bin/bash',close_fds=True)
 		print(f"{self.id}: start seq {seq}")
 		time.sleep(random.randint(1,10))
 
@@ -128,5 +153,12 @@ class Flow(L.LightningFlow):
 	def run(self):
 		self.elastic_flow1.run()
 
+	def configure_layout(self):
+		ui = []
+		ui.append({"name":"Config", "content":self.elastic_flow1})
+		for i,active in self.elastic_flow1.worker_active.items():
+			if active:
+				ui.append({"name":f"Terminal {str(i)}","content":self.elastic_flow1.workers[str(i)]})
+		return(ui)
 if __name__ == "__main__":
 	app = L.LightningApp(Flow())
