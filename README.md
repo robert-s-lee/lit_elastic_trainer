@@ -23,7 +23,7 @@ subgraph Start if Conditions are met
 end
 ```
 
-Each Flow has dynamic number of Works.
+Each Flow has elastic (scale out and scale in) number of Works.
 ```mermaid
 graph TD
 UI --> |Interactive Control During the Run| Run
@@ -39,11 +39,18 @@ end
 
 # Screen shots
 
+Work has active terminal while running for debugging.
+
+![Terminal](static/terminal.png)
+
 A work starts when there is something to run.
+
+![job control](static/jobs.png)
 
 It terminates after specified number of idle time to save cost.
 
-UI is dynamically generated.
+![terminate](static/elastic.png)
 
-Work has active terminal while running for debugging.
+UI is dynamically generated.
+![dyamic](static/progress.png)
 
