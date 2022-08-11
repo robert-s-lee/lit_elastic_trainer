@@ -16,7 +16,8 @@ def run(state):
 	# TODO: not supported yet
 	# target_wait_timeout = int(st.number_input("wait timeout (sec)", value = 600, disabled = state.submit_processing))
 
-	target_idle_timeout = int(st.number_input("idle timeout (sec)", value = 600, disabled = state.submit_processing))
+	# TODO: only works for GPU and not on CPU
+	target_idle_timeout = int(st.number_input("idle timeout (sec)", value = 60, disabled = state.submit_processing))
 
 	submit = st.button("Submit", disabled = state.submit_processing)
 	if submit:

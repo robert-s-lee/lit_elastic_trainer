@@ -6,11 +6,18 @@ import scripts.ui_main as ui_main
 import time
 import random
 import pprint
-from lightning_app.utilities.enum import WorkStageStatus
+from lightning_app.utilities.enum import WorkStageStatus #     NOT_STARTED PENDING RUNNING SUCCEEDED FAILED STOPPED
 
 def work_is_free(work):
 	"""this is not 100% if the work executes very fast"""
 	if (work.status.stage == WorkStageStatus.NOT_STARTED) or (work.status.stage == WorkStageStatus.SUCCEEDED):
+		return(True)
+	else:
+		return(False)
+
+def work_is_stopped(work):
+	""" STOPPED, FAILED """
+	if (work.status.stage == WorkStageStatus.FAILED) or (work.status.stage == WorkStageStatus.STOPPED):
 		return(True)
 	else:
 		return(False)
@@ -24,16 +31,15 @@ class ElasticFlow(L.LightningFlow):
 		self.workers = Dict()		
 		self.worker_call_count = {}	
 		self.worker_active = {}
-		self.worker_running = {}
 		self.last_worker_id = 0
 		# vm config
 		self.target_instance_type = "default"
 		self.target_preemptible = False		# feature not avail yet
 		self.target_wait_timeout = None 	# feature not avail yet
-		self.target_idle_timeout = None
+		self.target_idle_timeout = None		# does not work on default instance
 
 		# state
-		self.n_trials = 50
+		self.n_trials = 20
 		self.current_trial = 0
 		# set by UI
 		self.submit_processing = True
@@ -97,6 +103,11 @@ class ElasticFlow(L.LightningFlow):
 					w.run(self.current_trial)
 					self.worker_call_count[i] += 1
 					self.current_trial += 1
+				# should be removed from active
+				elif self.worker_active[i] and work_is_stopped(w):	
+					print(f"Worker {i}: removing from the active pool {w.status.stage}")
+					self.worker_active[i] = False
+					self.num_of_workers -= 1
 
 	def configure_layout(self):
 		return(StreamlitFrontend(render_fn=ui_main.run))  
@@ -112,10 +123,10 @@ class Work(L.LightningWork):
 class Flow(L.LightningFlow):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.elastic_flow = ElasticFlow()
+		self.elastic_flow1 = ElasticFlow()
 
 	def run(self):
-		self.elastic_flow.run()
+		self.elastic_flow1.run()
 
 if __name__ == "__main__":
 	app = L.LightningApp(Flow())
